@@ -1,5 +1,17 @@
-// create guide
+// add admin cloud function
+const addAdminForm = document.getElementById("add-admin-form");
 
+addAdminForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const adminEmail = addAdminForm["admin-email"].value;
+  const addAdminRole = firebase.functions().httpsCallable("addAdminRole");
+  addAdminRole({ email: adminEmail }).then((result) => {
+    console.log(result);
+  });
+});
+
+// create guide
 const createForm = document.getElementById("create-form");
 
 createForm.addEventListener("submit", (e) => {
@@ -23,10 +35,14 @@ createForm.addEventListener("submit", (e) => {
 // listen for auth status changes
 auth.onAuthStateChanged((user) => {
   if (user) {
+    auth.currentUser.getIdTokenResult().then((idTokenResult) => {
+      user.admin = idTokenResult.claims.admin;
+      setupUI(user);
+    });
+
     db.collection("guides").onSnapshot(
       (snapshot) => {
         setupGuides(snapshot.docs);
-        setupUI(user);
       },
       (error) => {
         console.log(error.message);
@@ -60,6 +76,10 @@ signUpForm.addEventListener("submit", (e) => {
       const signUpModal = document.getElementById("modal-signup");
       M.Modal.getInstance(signUpModal).close();
       signUpForm.reset();
+      signUpForm.querySelector(".error").innerHTML("");
+    })
+    .catch((error) => {
+      signUpForm.querySelector(".error").innerHTML = error.message;
     });
 });
 
@@ -80,9 +100,15 @@ signInForm.addEventListener("submit", (e) => {
   const email = signInForm["login-email"].value;
   const password = signInForm["login-password"].value;
 
-  auth.signInWithEmailAndPassword(email, password).then(() => {
-    const signInModal = document.getElementById("modal-login");
-    M.Modal.getInstance(signInModal).close();
-    signInForm.reset();
-  });
+  auth
+    .signInWithEmailAndPassword(email, password)
+    .then(() => {
+      const signInModal = document.getElementById("modal-login");
+      M.Modal.getInstance(signInModal).close();
+      signInForm.reset();
+      signInForm.querySelector(".error").innerHTML("");
+    })
+    .catch((error) => {
+      signInForm.querySelector(".error").innerHTML = error.message;
+    });
 });
